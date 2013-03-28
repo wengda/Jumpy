@@ -118,46 +118,36 @@ namespace JumpyImpl
             _view.ViewScroller.EnsureSpanVisible(span.GetSpan(_view.TextSnapshot));
             return;*/
             _view.Caret.IsHidden = true;
+            _view.Caret.MoveTo(GetMoveToPoint(c));
+            _view.Caret.IsHidden = false;
+        }
+
+        private SnapshotPoint GetMoveToPoint(char c)
+        {
             var point = _indicatorBlocks[c].Point;
             if (_searchingChar == (char)Key.End)
-                _view.Caret.MoveTo(point + 1);
-            else if (_searchingChar == (char)Key.Home)
-                _view.Caret.MoveTo(point);
-            else
+                return point + 1;
+            if (_searchingChar == (char)Key.Home)
+                return point;
+            if (_smartJump)
             {
-                if (_smartJump)
+                var c1 = point.GetChar();
+                if (c1 == ';')
                 {
-                    var c1 = point.GetChar();
-                    if (IsAtoZ(c1))
-                    {
-                        if (point.Position != point.GetContainingLine().End)
-                        {
-                            var nextPoint = point + 1;
-                            c1 = nextPoint.GetChar();
-                            _view.Caret.MoveTo(IsAtoZ(c1) ? point : nextPoint);
-                        }
-                        else
-                        {
-                            point = point + 1;
-                            _view.Caret.MoveTo(point);
-                        }
-                    }
-                    else if (c1 == ';')
-                    {
-                        _view.Caret.MoveTo(point + 1);
-                    }
-                    else
-                    {
-                        _view.Caret.MoveTo(point);
-                    }
-
+                    return point + 1;
                 }
-                else
+                if (IsAtoZ(c1))
                 {
-                    _view.Caret.MoveTo(point);
+                    if (point.Position != point.GetContainingLine().End)
+                    {
+                        var nextPoint = point + 1;
+                        c1 = nextPoint.GetChar();
+                        return IsAtoZ(c1) ? point : nextPoint;
+                    }
+                    return point +1;
                 }
             }
-            _view.Caret.IsHidden = false;
+            return point;
         }
 
         private static bool IsAtoZ(char c, bool ignoreCase = true)
