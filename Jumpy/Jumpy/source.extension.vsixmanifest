@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
-    <Identity Id="7562916a-8cb7-44e5-8005-6b8c08ecf9e0" Version="0.20" Language="en-US" Publisher="Da Weng" />
+    <Identity Id="7562916a-8cb7-44e5-8005-6b8c08ecf9e0" Version="0.21" Language="en-US" Publisher="Da Weng" />
     <DisplayName>Jumpy</DisplayName>
     <Description>Jump to specific letter in the screen.</Description>
   </Metadata>
