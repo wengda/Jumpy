@@ -117,9 +117,12 @@ namespace JumpyImpl
             var span = _view.TextSnapshot.CreateTrackingSpan(1, 1, SpanTrackingMode.EdgeInclusive);
             _view.ViewScroller.EnsureSpanVisible(span.GetSpan(_view.TextSnapshot));
             return;*/
-            _view.Caret.IsHidden = true;
-            _view.Caret.MoveTo(GetMoveToPoint(c));
-            _view.Caret.IsHidden = false;
+            //_view.Caret.IsHidden = true;
+            var moveToPoint = GetMoveToPoint(c);
+            if (!_view.Selection.IsEmpty)
+                _view.Selection.Select(new SnapshotSpan(moveToPoint, moveToPoint), false);
+            _view.Caret.MoveTo(moveToPoint);
+            //_view.Caret.IsHidden = false;
         }
 
         private SnapshotPoint GetMoveToPoint(char c)
@@ -341,7 +344,7 @@ namespace JumpyImpl
                 var currentLine = _view.TextViewLines[_minSearchLineIndex];
                 if (currentLine.Start != currentLine.End)
                 {
-                    CreateIndicateBox(currentLine.End - 1, currentLine, (char)++_currentCharInt);
+                    FindValidTailAndCreateIndicateBox(currentLine);
                 }
             }
 
@@ -353,7 +356,7 @@ namespace JumpyImpl
                     var currentLine = _view.TextViewLines[_minSearchLineIndex];
                     if (currentLine.Start != currentLine.End)
                     {
-                        CreateIndicateBox(currentLine.End - 1, currentLine, (char)++_currentCharInt);
+                        FindValidTailAndCreateIndicateBox(currentLine); 
                         if (_currentCharInt >= Z)
                             break;
                     }
@@ -365,11 +368,10 @@ namespace JumpyImpl
                     var currentLine = _view.TextViewLines[_maxSearchLineIndex];
                     if (currentLine.Start != currentLine.End)
                     {
-                        CreateIndicateBox(currentLine.End - 1, currentLine, (char)++_currentCharInt);
+                        FindValidTailAndCreateIndicateBox(currentLine);
                         if (_currentCharInt >= Z)
                             break;
                     }
-
                 }
 
                 if (_minSearchLineIndex <= 0 && _maxSearchLineIndex >= _view.TextViewLines.Count - 1)
@@ -377,6 +379,13 @@ namespace JumpyImpl
                     break;
                 }
             }
+        }
+
+        private void FindValidTailAndCreateIndicateBox(IWpfTextViewLine currentLine)
+        {
+            var point = currentLine.End - 1;
+            if (IsPointVisible(currentLine, point))
+                CreateIndicateBox(point, currentLine, (char) ++_currentCharInt);
         }
 
         private void DoLineHeadSearch()
@@ -384,30 +393,25 @@ namespace JumpyImpl
             if (_minSearchLineIndex == _maxSearchLineIndex)
             {
                 var currentLine = _view.TextViewLines[_minSearchLineIndex];
-                var head = FindValidHead(currentLine);
-                CreateIndicateBox(head, currentLine, (char)++_currentCharInt);
+                FindValidHeadAndCreateIndicateBox(currentLine);
             }
-
-
+            
             while (_currentCharInt < Z)
             {
                 if (_minSearchLineIndex > 0)
                 {
                     _minSearchLineIndex--;
                     var currentLine = _view.TextViewLines[_minSearchLineIndex];
-                    var head = FindValidHead(currentLine);
-                    CreateIndicateBox(head, currentLine, (char)++_currentCharInt);
+                    FindValidHeadAndCreateIndicateBox(currentLine);
                     if (_currentCharInt >= Z)
                         break;
-
                 }
 
                 if (_maxSearchLineIndex < _view.TextViewLines.Count - 1)
                 {
                     _maxSearchLineIndex++;
                     var currentLine = _view.TextViewLines[_maxSearchLineIndex];
-                    var head = FindValidHead(currentLine);
-                    CreateIndicateBox(head, currentLine, (char)++_currentCharInt);
+                    FindValidHeadAndCreateIndicateBox(currentLine);
                     if (_currentCharInt >= Z)
                         break;
                 }
@@ -419,6 +423,22 @@ namespace JumpyImpl
             }
         }
 
+        private void FindValidHeadAndCreateIndicateBox(IWpfTextViewLine currentLine)
+        {
+            var head = FindValidHead(currentLine);
+            if (IsPointVisible(currentLine, head))
+                CreateIndicateBox(head, currentLine, (char) ++_currentCharInt);
+        }
+
+        private static bool IsPointVisible(IWpfTextViewLine currentLine, SnapshotPoint point)
+        {
+            //HACK:Assume the currentline is always the only line of SnapshotLine.
+            var bound = currentLine.GetCharacterBounds(point);
+            var right = currentLine.VisibleArea.TopRight.X;
+            var left = currentLine.VisibleArea.TopLeft.X;
+            return bound.Left >= left && bound.Right <= right;
+        }
+        
         private static SnapshotPoint FindValidHead(IWpfTextViewLine currentLine)
         {
             SnapshotPoint pos = currentLine.Start;
@@ -531,6 +551,9 @@ namespace JumpyImpl
 
         private void SearchAndCreateIndicateBox(SnapshotPoint point, char searchingChar, IWpfTextViewLine currentLine)
         {
+            if (!IsPointVisible(currentLine, point))
+                return;
+
             var c = point.GetChar();
             if (char.ToUpperInvariant(c) == char.ToUpperInvariant(searchingChar))
             {
@@ -552,6 +575,7 @@ namespace JumpyImpl
             }
             catch (Exception exception)
             {
+                //TODO: log exception message.
                 Console.WriteLine(exception.Message);
             }
 
