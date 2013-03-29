@@ -144,7 +144,7 @@ namespace JumpyImpl
                         c1 = nextPoint.GetChar();
                         return IsAtoZ(c1) ? point : nextPoint;
                     }
-                    return point +1;
+                    return point + 1;
                 }
             }
             return point;

@@ -64,7 +64,7 @@ namespace JumpyImpl
                         return 0;
                     }
                 }
-                //return 0;
+                return 0;
             }
 
             return _nextTarget.Exec(ref pguidCmdGroup, nCmdID, nCmdexecopt, pvaIn, pvaOut);
