@@ -308,7 +308,6 @@ namespace JumpyImpl
                 _maxSearchPos = GetNextPos(_view.TextViewLines[_maxSearchLineIndex], currentCharPoint.Value);
                 _minSearchPos = GetPrevPos(_view.TextViewLines[_minSearchLineIndex], currentCharPoint.Value);
 
-
                 DoSearch();
 
                 if (_currentCharInt >= A)
@@ -320,178 +319,20 @@ namespace JumpyImpl
             }
         }
 
-        private void DoSearch()
+        private int GetCurrentLineIndex()
         {
-            if (_searchingChar == (char)Key.Home)
+            int currentIndex = -1;
+            var currentLine = _view.Caret.ContainingTextViewLine;
+            for (int i = 0; i < _view.TextViewLines.Count; i++)
             {
-                DoLineHeadSearch();
-            }
-            else if (_searchingChar == (char)Key.End)
-            {
-                DoLineTailSearch();
-            }
-            else
-            {
-                DoRegularSearch(_view.TextViewLines[_minSearchLineIndex], _view.TextViewLines[_maxSearchLineIndex],
-                                _searchingChar);
-            }
-        }
-
-        private void DoLineTailSearch()
-        {
-            if (_minSearchLineIndex == _maxSearchLineIndex)
-            {
-                var currentLine = _view.TextViewLines[_minSearchLineIndex];
-                if (currentLine.Start != currentLine.End)
+                if (_view.TextViewLines[i] == currentLine)
                 {
-                    FindValidTailAndCreateIndicateBox(currentLine);
-                }
-            }
-
-            while (_currentCharInt < Z)
-            {
-                if (_minSearchLineIndex > 0)
-                {
-                    _minSearchLineIndex--;
-                    var currentLine = _view.TextViewLines[_minSearchLineIndex];
-                    if (currentLine.Start != currentLine.End)
-                    {
-                        FindValidTailAndCreateIndicateBox(currentLine); 
-                        if (_currentCharInt >= Z)
-                            break;
-                    }
-                }
-
-                if (_maxSearchLineIndex < _view.TextViewLines.Count - 1)
-                {
-                    _maxSearchLineIndex++;
-                    var currentLine = _view.TextViewLines[_maxSearchLineIndex];
-                    if (currentLine.Start != currentLine.End)
-                    {
-                        FindValidTailAndCreateIndicateBox(currentLine);
-                        if (_currentCharInt >= Z)
-                            break;
-                    }
-                }
-
-                if (_minSearchLineIndex <= 0 && _maxSearchLineIndex >= _view.TextViewLines.Count - 1)
-                {
+                    currentIndex = i;
                     break;
                 }
             }
-        }
 
-        private void FindValidTailAndCreateIndicateBox(IWpfTextViewLine currentLine)
-        {
-            var point = currentLine.End - 1;
-            if (IsPointVisible(currentLine, point))
-                CreateIndicateBox(point, currentLine, (char) ++_currentCharInt);
-        }
-
-        private void DoLineHeadSearch()
-        {
-            if (_minSearchLineIndex == _maxSearchLineIndex)
-            {
-                var currentLine = _view.TextViewLines[_minSearchLineIndex];
-                FindValidHeadAndCreateIndicateBox(currentLine);
-            }
-            
-            while (_currentCharInt < Z)
-            {
-                if (_minSearchLineIndex > 0)
-                {
-                    _minSearchLineIndex--;
-                    var currentLine = _view.TextViewLines[_minSearchLineIndex];
-                    FindValidHeadAndCreateIndicateBox(currentLine);
-                    if (_currentCharInt >= Z)
-                        break;
-                }
-
-                if (_maxSearchLineIndex < _view.TextViewLines.Count - 1)
-                {
-                    _maxSearchLineIndex++;
-                    var currentLine = _view.TextViewLines[_maxSearchLineIndex];
-                    FindValidHeadAndCreateIndicateBox(currentLine);
-                    if (_currentCharInt >= Z)
-                        break;
-                }
-
-                if (_minSearchLineIndex <= 0 && _maxSearchLineIndex >= _view.TextViewLines.Count - 1)
-                {
-                    break;
-                }
-            }
-        }
-
-        private void FindValidHeadAndCreateIndicateBox(IWpfTextViewLine currentLine)
-        {
-            var head = FindValidHead(currentLine);
-            if (IsPointVisible(currentLine, head))
-                CreateIndicateBox(head, currentLine, (char) ++_currentCharInt);
-        }
-
-        private static bool IsPointVisible(IWpfTextViewLine currentLine, SnapshotPoint point)
-        {
-            //HACK:Assume the currentline is always the only line of SnapshotLine.
-            var bound = currentLine.GetCharacterBounds(point);
-            var right = currentLine.VisibleArea.TopRight.X;
-            var left = currentLine.VisibleArea.TopLeft.X;
-            return bound.Left >= left && bound.Right <= right;
-        }
-        
-        private static SnapshotPoint FindValidHead(IWpfTextViewLine currentLine)
-        {
-            SnapshotPoint pos = currentLine.Start;
-            while (pos < currentLine.End)
-            {
-                var c = pos.GetChar();
-                if (c != ' ' && c != '\t' && c != '\r' && c != '\n')
-                {
-                    return pos;
-                }
-                pos = pos + 1;
-            }
-            return currentLine.Start;
-        }
-
-        private void DoRegularSearch(IWpfTextViewLine upLine, IWpfTextViewLine downLine, char searchingChar)
-        {
-            SearchUp(upLine, searchingChar);
-
-            SearchDown(downLine, searchingChar);
-
-            while (_currentCharInt < Z)
-            {
-                if (_minSearchLineIndex > 0)
-                {
-                    _minSearchLineIndex--;
-                    var currentLine = _view.TextViewLines[_minSearchLineIndex];
-                    _minSearchPos = currentLine.End;
-                    SearchUp(currentLine, searchingChar);
-                    if (_currentCharInt >= Z)
-                        break;
-                }
-
-                if (_maxSearchLineIndex < _view.TextViewLines.Count - 1)
-                {
-                    _maxSearchLineIndex++;
-                    var currentLine = _view.TextViewLines[_maxSearchLineIndex];
-                    _maxSearchPos = currentLine.Start;
-                    SearchDown(currentLine, searchingChar);
-                    if (_currentCharInt >= Z)
-                        break;
-                }
-
-                if (_minSearchLineIndex <= 0 && _maxSearchLineIndex >= _view.TextViewLines.Count - 1)
-                {
-                    break;
-                }
-            }
-        }
-
-        private void ResetCurrentCharInt()
-        {
-            _currentCharInt = A - 1;
+            return currentIndex;
         }
 
         private static SnapshotPoint GetPrevPos(IWpfTextViewLine line, SnapshotPoint currentCharPoint)
@@ -508,16 +349,152 @@ namespace JumpyImpl
             return currentCharPoint + 1;
         }
 
+        #region Search
 
+        private void DoSearch()
+        {
+            switch (_searchingChar)
+            {
+                case (char) Key.Home:
+                    DoLineHeadSearch();
+                    break;
+                case (char) Key.End:
+                    DoLineTailSearch();
+                    break;
+                default:
+                    DoRegularSearch(GetPrevLine(), GetNextLine(), _searchingChar);
+                    break;
+            }
+        }
+
+        private void DoLineHeadSearch()
+        {
+            if (IsInitLine())
+            {
+                var currentLine = GetInitLine();
+                FindValidHeadAndCreateIndicateBox(currentLine);
+            }
+
+            while (!ExhaustedIndicators())
+            {
+                if (IsPrevLineValid())
+                {
+                    MoveToPrevLine();
+                    var currentLine = GetPrevLine();
+                    FindValidHeadAndCreateIndicateBox(currentLine);
+                    if (ExhaustedIndicators())
+                        break;
+                }
+
+                if (IsNextLineValid())
+                {
+                    MoveToNextLine();
+                    var currentLine = GetNextLine();
+                    FindValidHeadAndCreateIndicateBox(currentLine);
+                    if (ExhaustedIndicators())
+                        break;
+                }
+
+                if (ExhaustedVisibleLines())
+                    break;
+            }
+        }
+
+        private void DoLineTailSearch()
+        {
+            if (IsInitLine())
+            {
+                var currentLine = GetPrevLine(); //which is the current line
+                if (currentLine.Start != currentLine.End)
+                {
+                    FindValidTailAndCreateIndicateBox(currentLine);
+                }
+            }
+
+            while (!ExhaustedIndicators())
+            {
+                if (IsPrevLineValid())
+                {
+                    MoveToPrevLine();
+                    var currentLine = GetPrevLine();
+                    if (currentLine.Start != currentLine.End)
+                    {
+                        FindValidTailAndCreateIndicateBox(currentLine);
+                        if (ExhaustedIndicators())
+                            break;
+                    }
+                }
+
+                if (IsNextLineValid())
+                {
+                    MoveToNextLine();
+                    var currentLine = GetNextLine();
+                    if (currentLine.Start != currentLine.End)
+                    {
+                        FindValidTailAndCreateIndicateBox(currentLine);
+                        if (ExhaustedIndicators())
+                            break;
+                    }
+                }
+
+                if (ExhaustedVisibleLines())
+                    break;
+            }
+        }
+
+        private void DoRegularSearch(IWpfTextViewLine upLine, IWpfTextViewLine downLine, char searchingChar)
+        {
+            SearchUp(upLine, searchingChar);
+
+            SearchDown(downLine, searchingChar);
+
+            while (!ExhaustedIndicators())
+            {
+                if (IsPrevLineValid())
+                {
+                    MoveToPrevLine();
+                    var currentLine = GetPrevLine();
+                    _minSearchPos = currentLine.End;
+                    SearchUp(currentLine, searchingChar);
+                    if (ExhaustedIndicators())
+                        break;
+                }
+
+                if (IsNextLineValid())
+                {
+                    MoveToNextLine();
+                    var currentLine = GetNextLine();
+                    _maxSearchPos = currentLine.Start;
+                    SearchDown(currentLine, searchingChar);
+                    if (ExhaustedIndicators())
+                        break;
+                }
+
+                if (ExhaustedVisibleLines())
+                    break;
+            }
+        }
+
+        private void SearchUp(IWpfTextViewLine currentLine, char searchingChar)
+        {
+            if (IsCollaspsedLine(currentLine))
+                return;
+
+            while (_minSearchPos >= currentLine.Start && !ExhaustedIndicators())
+            {
+                SearchAndCreateIndicateBox(_minSearchPos, searchingChar, currentLine);
+                if (_minSearchPos == currentLine.Start)
+                    break;
+                _minSearchPos = _minSearchPos - 1;
+            }
+        }
 
         private void SearchDown(IWpfTextViewLine currentLine, char searchingChar)
         {
             if (IsCollaspsedLine(currentLine))
-            {
                 return;
-            }
 
-            while (_maxSearchPos < currentLine.End && _currentCharInt < Z)
+            while (_maxSearchPos < currentLine.End && !ExhaustedIndicators())
             {
                 SearchAndCreateIndicateBox(_maxSearchPos, searchingChar, currentLine);
                 _maxSearchPos = _maxSearchPos + 1;
@@ -532,21 +509,105 @@ namespace JumpyImpl
 
             return regions.Any();
         }
-
-        private void SearchUp(IWpfTextViewLine currentLine, char searchingChar)
+        
+        private bool IsInitLine()
         {
-            if (IsCollaspsedLine(currentLine))
-            {
-                return;
-            }
+            return _minSearchLineIndex == _maxSearchLineIndex;
+        }
 
-            while (_minSearchPos >= currentLine.Start && _currentCharInt < Z)
+        private IWpfTextViewLine GetInitLine()
+        {
+            if (IsInitLine())
+                return GetPrevLine();
+            throw new Exception("Search is no longer at initial position");
+        }
+
+        private IWpfTextViewLine GetPrevLine()
+        {
+            return _view.TextViewLines[_minSearchLineIndex];
+        }
+
+        private IWpfTextViewLine GetNextLine()
+        {
+            return _view.TextViewLines[_maxSearchLineIndex];
+        }
+
+        private void MoveToPrevLine()
+        {
+            _minSearchLineIndex--;
+        }
+
+        private void MoveToNextLine()
+        {
+            _maxSearchLineIndex++;
+        }
+
+        private bool ExhaustedIndicators()
+        {
+            return _currentCharInt >= Z;
+        }
+        
+        private bool IsNextLineValid()
+        {
+            return _maxSearchLineIndex < _view.TextViewLines.Count - 1;
+        }
+
+        private bool IsPrevLineValid()
+        {
+            return _minSearchLineIndex > 0;
+        }
+
+        private bool ExhaustedVisibleLines()
+        {
+            return !IsPrevLineValid() && !IsNextLineValid();
+        }
+
+        private void FindValidTailAndCreateIndicateBox(IWpfTextViewLine currentLine)
+        {
+            var point = currentLine.End - 1;
+            if (IsPointVisible(currentLine, point))
+                CreateIndicateBox(point, currentLine, (char) ++_currentCharInt);
+        }
+        
+        private void FindValidHeadAndCreateIndicateBox(IWpfTextViewLine currentLine)
+        {
+            var head = FindValidHead(currentLine);
+            if (IsPointVisible(currentLine, head))
+                CreateIndicateBox(head, currentLine, (char) ++_currentCharInt);
+        }
+
+        private static bool IsPointVisible(IWpfTextViewLine currentLine, SnapshotPoint point)
+        {
+            //HACK:Assume the currentline is always the only line of SnapshotLine.
+            var bound = currentLine.GetCharacterBounds(point);
+            var right = currentLine.VisibleArea.TopRight.X;
+            var left = currentLine.VisibleArea.TopLeft.X;
+            return bound.Left >= left && bound.Right <= right;
+        }
+
+        private static SnapshotPoint FindValidHead(IWpfTextViewLine currentLine)
+        {
+            SnapshotPoint pos = currentLine.Start;
+            while (pos < currentLine.End)
             {
-                SearchAndCreateIndicateBox(_minSearchPos, searchingChar, currentLine);
-                if (_minSearchPos == currentLine.Start)
-                    break;
-                _minSearchPos = _minSearchPos - 1;
+                var c = pos.GetChar();
+                if (c != ' ' && c != '\t' && c != '\r' && c != '\n')
+                {
+                    return pos;
+                }
+                pos = pos + 1;
             }
+            return currentLine.Start;
+        }
+
+        
+        #endregion
+
+        
+
+        private void ResetCurrentCharInt()
+        {
+            _currentCharInt = A - 1;
         }
 
         private void SearchAndCreateIndicateBox(SnapshotPoint point, char searchingChar, IWpfTextViewLine currentLine)
@@ -576,26 +637,12 @@ namespace JumpyImpl
             catch (Exception exception)
             {
                 //TODO: log exception message.
-                Console.WriteLine(exception.Message);
+                //Console.WriteLine(exception.Message);
             }
 
         }
 
-        private int GetCurrentLineIndex()
-        {
-            int currentIndex = -1;
-            var currentLine = _view.Caret.ContainingTextViewLine;
-            for (int i = 0; i < _view.TextViewLines.Count; i++)
-            {
-                if (_view.TextViewLines[i] == currentLine)
-                {
-                    currentIndex = i;
-                    break;
-                }
-            }
-
-            return currentIndex;
-        }
+        
 
 
     }
