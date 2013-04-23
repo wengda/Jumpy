@@ -63,12 +63,12 @@ namespace JumpyImpl
                 {
                     if (c.Equals(e.KeyValue)) //Hack: Uppercase
                     {
-                        MoveCaretToPosition(c);
-                        SnapshotSpan span = _currentCharPoint <= _indicatorBlocks[c].Point
-                                                ? new SnapshotSpan(_currentCharPoint, _indicatorBlocks[c].Point)
-                                                : new SnapshotSpan(_indicatorBlocks[c].Point, _currentCharPoint);
+                        var moveToPoint = MoveCaretToPosition(c);
+                        SnapshotSpan span = _currentCharPoint <= moveToPoint
+                                                ? new SnapshotSpan(_currentCharPoint, moveToPoint)
+                                                : new SnapshotSpan(moveToPoint, _currentCharPoint);
 
-                        _view.Selection.Select(span, _currentCharPoint < _indicatorBlocks[c].Point);
+                        _view.Selection.Select(span, _currentCharPoint < moveToPoint);
                     }
                     else
                     {
@@ -111,7 +111,7 @@ namespace JumpyImpl
             _view.Caret.IsHidden = false;
         }
 
-        private void MoveCaretToPosition(char c)
+        private SnapshotPoint MoveCaretToPosition(char c)
         {
             /*_view.Caret.MoveTo(_view.TextSnapshot.GetLineFromLineNumber(1).Start);
             var span = _view.TextSnapshot.CreateTrackingSpan(1, 1, SpanTrackingMode.EdgeInclusive);
@@ -122,6 +122,7 @@ namespace JumpyImpl
             if (!_view.Selection.IsEmpty)
                 _view.Selection.Select(new SnapshotSpan(moveToPoint, moveToPoint), false);
             _view.Caret.MoveTo(moveToPoint);
+            return moveToPoint;
             //_view.Caret.IsHidden = false;
         }
 

@@ -17,7 +17,7 @@ namespace JumpyImpl
     {
         [Export(typeof(AdornmentLayerDefinition))]
         [Name("JumpyAdornmentLayer")]
-        [Order(After = PredefinedAdornmentLayers.Caret, Before = PredefinedAdornmentLayers.DifferenceChanges)]
+        [Order(Before = PredefinedAdornmentLayers.Caret)]
         //[Order(Before = PredefinedAdornmentLayers.Caret)]
         [TextViewRole(PredefinedTextViewRoles.Editable)]
         public AdornmentLayerDefinition commentLayerDefinition;
